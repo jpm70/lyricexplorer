@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LRCLIB Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Syne:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d0d0f;
+      --bg2:     #141417;
+      --bg3:     #1c1c21;
+      --bg4:     #242429;
+      --line:    #2a2a32;
+      --txt:     #f0ede8;
+      --txt2:    #9a9799;
+      --txt3:    #5a5860;
+      --accent:  #c8f060;
+      --accent2: #a8d040;
+      --accent-dim: rgba(200,240,96,0.08);
+      --red:     #ff5f5f;
+      --blue:    #60b4ff;
+      --radius:  10px;
+      --radius-lg: 14px;
+    }
+
+    html, body { min-height: 100vh; background: var(--bg); color: var(--txt); font-family: 'Syne', sans-serif; }
+
+    /* ── LAYOUT ── */
+    .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+      padding: 2rem 1.5rem;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .logo { margin-bottom: 2.5rem; }
+    .logo-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; font-weight: 600;
+      color: var(--txt); line-height: 1;
+    }
+    .logo-name span { color: var(--accent); font-style: italic; }
+    .logo-tag { font-size: 10px; color: var(--txt3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 5px; }
+
+    .nav-label { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 12px; margin-bottom: 4px;
+      background: transparent; border: 1px solid transparent;
+      border-radius: var(--radius); cursor: pointer;
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--txt2); text-align: left;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .nav-btn:hover { background: var(--bg3); color: var(--txt); }
+    .nav-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .nav-btn .icon { font-size: 15px; width: 18px; text-align: center; }
+
+    .sidebar-footer { margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+    .api-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--txt3); padding: 6px 10px;
+      background: var(--bg3); border-radius: 6px;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── MAIN ── */
+    .main { padding: 2.5rem 2rem; max-width: 800px; }
+
+    .page-header { margin-bottom: 2rem; }
+    .page-title { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 600; color: var(--txt); }
+    .page-title em { font-style: italic; color: var(--accent); }
+    .page-sub { font-size: 13px; color: var(--txt3); margin-top: 6px; }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 14px; }
+    .lbl { display: block; font-size: 11px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg3); border: 1px solid var(--line);
+      border-radius: var(--radius); color: var(--txt);
+      font-family: 'Syne', sans-serif; font-size: 14px;
+      outline: none; transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--txt3); }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 120px; gap: 12px; }
+
+    .hint {
+      font-size: 12px; color: var(--txt3); padding: 10px 14px;
+      background: var(--bg3); border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent;
+      transition: all 0.15s; letter-spacing: 0.02em;
+    }
+    .btn-primary { background: var(--accent); color: #0d0d0f; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--txt2); border-color: var(--line); }
+    .btn-ghost:hover { background: var(--bg3); color: var(--txt); }
+
+    /* ── RESULTS ── */
+    .result-wrap { margin-top: 1.5rem; }
+    .result-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: var(--bg3); border: 1px solid var(--line);
+      border-bottom: none; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .result-head-title { font-size: 12px; color: var(--txt3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    .pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .pill-ok { background: rgba(200,240,96,0.12); color: var(--accent); }
+    .pill-err { background: rgba(255,95,95,0.12); color: var(--red); }
+    .pill-wait { background: var(--bg4); color: var(--txt3); }
+    .result-body {
+      border: 1px solid var(--line); border-top: 1px solid var(--line);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      overflow: hidden;
+    }
+
+    /* ── SONG LIST ── */
+    .song-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px; border-bottom: 1px solid var(--line);
+      cursor: pointer; transition: background 0.12s;
+      background: var(--bg2);
+    }
+    .song-item:last-child { border-bottom: none; }
+    .song-item:hover { background: var(--bg3); }
+    .song-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--txt3); min-width: 20px; }
+    .song-info { flex: 1; min-width: 0; }
+    .song-title { font-size: 14px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .song-artist { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+    .song-album { font-size: 11px; color: var(--txt3); font-style: italic; }
+    .song-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .dur { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--txt3); }
+    .tag { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; }
+    .tag-sync { background: rgba(200,240,96,0.12); color: var(--accent); }
+    .tag-plain { background: var(--bg4); color: var(--txt3); }
+    .tag-none { background: rgba(255,95,95,0.1); color: var(--red); }
+
+    /* ── LYRICS VIEW ── */
+    .lyrics-wrap { background: var(--bg2); }
+    .lyrics-top {
+      padding: 16px 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--txt3); cursor: pointer; background: none; border: none; font-family: 'Syne', sans-serif; padding: 0; margin-bottom: 12px; transition: color 0.12s; }
+    .back:hover { color: var(--accent); }
+    .ly-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; color: var(--txt); }
+    .ly-meta { font-size: 12px; color: var(--txt3); margin: 4px 0 14px; }
+    .ly-tabs { display: flex; gap: 0; }
+    .ly-tab {
+      padding: 8px 16px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--line); border-bottom: none; cursor: pointer;
+      background: var(--bg3); color: var(--txt3);
+      transition: all 0.12s; letter-spacing: 0.04em;
+    }
+    .ly-tab:first-child { border-radius: var(--radius) 0 0 0; }
+    .ly-tab:last-child { border-radius: 0 var(--radius) 0 0; border-left: none; }
+    .ly-tab.active { background: var(--bg2); color: var(--accent); border-bottom: 1px solid var(--bg2); margin-bottom: -1px; z-index: 1; position: relative; }
+
+    .ly-content { padding: 20px; max-height: 460px; overflow-y: auto; }
+    .ly-content::-webkit-scrollbar { width: 4px; }
+    .ly-content::-webkit-scrollbar-track { background: transparent; }
+    .ly-content::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+    .plain-text { font-size: 15px; line-height: 2; color: var(--txt2); white-space: pre-wrap; }
+
+    .sync-row { display: flex; gap: 14px; padding: 4px 0; align-items: baseline; }
+    .sync-ts { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); min-width: 42px; opacity: 0.7; }
+    .sync-line-text { font-size: 15px; color: var(--txt); line-height: 1.7; }
+
+    /* ── META GRID ── */
+    .meta-strip { display: flex; gap: 12px; padding: 12px 20px; background: var(--bg3); border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .meta-chip { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--txt3); background: var(--bg4); padding: 4px 10px; border-radius: 6px; }
+    .meta-chip strong { color: var(--txt2); }
+
+    /* ── EMPTY / ERROR ── */
+    .state-box { padding: 2.5rem; text-align: center; background: var(--bg2); }
+    .state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+    .state-msg { font-size: 14px; color: var(--txt3); }
+
+    /* ── SPINNER ── */
+    .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(13,13,15,0.3); border-top-color: #0d0d0f; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 1rem; gap: 8px; }
+      .logo { margin-bottom: 0; }
+      .nav-label { display: none; }
+      .nav-btn { padding: 7px 10px; font-size: 12px; }
+      .sidebar-footer { display: none; }
+      .main { padding: 1.5rem 1rem; }
+      .row2, .row3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-name">LRC<span>lib</span></div>
+      <div class="logo-tag">Lyrics Explorer</div>
+    </div>
+
+    <div class="nav-label">Modos</div>
+    <button class="nav-btn active" onclick="showPanel('search', this)">
+      <span class="icon">⌕</span> Buscar
+    </button>
+    <button class="nav-btn" onclick="showPanel('get', this)">
+      <span class="icon">◎</span> Obtener exacto
+    </button>
+    <button class="nav-btn" onclick="showPanel('cached', this)">
+      <span class="icon">⚡</span> Solo caché
+    </button>
+
+    <div class="sidebar-footer">
+      <div class="api-badge">
+        <span class="dot"></span>
+        lrclib.net · API abierta
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- SEARCH -->
+    <div class="panel active" id="panel-search">
+      <div class="page-header">
+        <div class="page-title">Buscar <em>letras</em></div>
+        <div class="page-sub">Búsqueda general por título, artista o álbum · /api/search</div>
+      </div>
+      <div class="field">
+        <label class="lbl">Búsqueda</label>
+        <input type="text" id="s-q" placeholder="ej: bohemian rhapsody, nirvana, dark side..." />
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="lbl">Artista (opcional)</label>
+          <input type="text" id="s-artist" placeholder="ej: Queen" />
+        </div>
+        <div class="field">
+          <label class="lbl">Álbum (opcional)</label>
+          <input type="text" id="s-album" placeholder="ej: A Night at the Opera" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-s" onclick="doSearch()">
+        Buscar letras
+      </button>
+      <div class="result-wrap" id="res-search"></div>
+    </div>
+
+    <!-- GET EXACT -->
+    <div class="panel" id="panel-get">
+      <div class="page-header">
+        <div class="page-title">Obtener <em>exacto</em></div>
+        <div class="page-sub">Identificación precisa de canción · /api/get</div>
+      </div>
+      <div class="hint">
+        Todos los campos son obligatorios. Si la canción no está en la base de datos interna, la API la busca automáticamente en fuentes externas.
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="lbl">Título</label>
+          <input type="text" id="g-title" placeholder="ej: Stairway to Heaven" />
+        </div>
+        <div class="field">
+          <label class="lbl">Artista</label>
+          <input type="text" id="g-artist" placeholder="ej: Led Zeppelin" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="lbl">Álbum</label>
+          <input type="text" id="g-album" placeholder="ej: Led Zeppelin IV" />
+        </div>
+        <div class="field">
+          <label class="lbl">Duración (segundos)</label>
+          <input type="number" id="g-dur" placeholder="ej: 482" min="0" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-g" onclick="doGet()">
+        Obtener letra
+      </button>
+      <div class="result-wrap" id="res-get"></div>
+    </div>
+
+    <!-- CACHED -->
+    <div class="panel" id="panel-cached">
+      <div class="page-header">
+        <div class="page-title">Solo <em>caché</em></div>
+        <div class="page-sub">Búsqueda rápida en base de datos interna · /api/get-cached</div>
+      </div>
+      <div class="hint">
+        Respuesta más rápida que el modo "Obtener exacto". Si la canción no está en caché, devuelve error 404 sin buscar en fuentes externas.
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="lbl">Título</label>
+          <input type="text" id="c-title" placeholder="ej: Come As You Are" />
+        </div>
+        <div class="field">
+          <label class="lbl">Artista</label>
+          <input type="text" id="c-artist" placeholder="ej: Nirvana" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="lbl">Álbum</label>
+          <input type="text" id="c-album" placeholder="ej: Nevermind" />
+        </div>
+        <div class="field">
+          <label class="lbl">Duración (segundos)</label>
+          <input type="number" id="c-dur" placeholder="ej: 219" min="0" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-c" onclick="doCached()">
+        Buscar en caché
+      </button>
+      <div class="result-wrap" id="res-cached"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  /* ─── Navigation ─── */
+  function showPanel(id, btn) {
+    document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('panel-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  /* ─── Helpers ─── */
+  function fmtDur(s) {
+    if (!s && s !== 0) return '—';
+    var m = Math.floor(s / 60);
+    var sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function parseLRC(lrc) {
+    if (!lrc) return [];
+    var lines = lrc.split('\n');
+    var result = [];
+    for (var i = 0; i < lines.length; i++) {
+      var m = lines[i].match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)/);
+      if (m) {
+        var t = parseInt(m[1]) * 60 + parseFloat(m[2]);
+        result.push({ time: t, text: m[3].trim() });
+      }
+    }
+    return result;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ─── Loading state ─── */
+  function setLoading(btnId, on) {
+    var btn = document.getElementById(btnId);
+    btn.disabled = on;
+    if (on) {
+      btn._txt = btn.innerHTML;
+      btn.innerHTML = '<span class="spin"></span> Buscando...';
+    } else {
+      btn.innerHTML = btn._txt || btn.innerHTML;
+    }
+  }
+
+  /* ─── Render helpers ─── */
+  function renderError(containerId, msg) {
+    document.getElementById(containerId).innerHTML =
+      '<div class="result-head"><span class="result-head-title">Respuesta</span><span class="pill pill-err">Error</span></div>' +
+      '<div class="result-body"><div class="state-box"><div class="state-icon">✕</div><div class="state-msg">' + esc(msg) + '</div></div></div>';
+  }
+
+  function renderList(containerId, items) {
+    var container = document.getElementById(containerId);
+    if (!items || items.length === 0) {
+      container.innerHTML =
+        '<div class="result-head"><span class="result-head-title">Resultados</span><span class="pill pill-wait">0</span></div>' +
+        '<div class="result-body"><div class="state-box"><div class="state-icon">♪</div><div class="state-msg">No se encontraron resultados.</div></div></div>';
+      return;
+    }
+    var listHTML = '';
+    var display = items.slice(0, 25);
+    for (var i = 0; i < display.length; i++) {
+      var item = display[i];
+      var hasSynced = !!item.syncedLyrics;
+      var hasPlain = !!item.plainLyrics;
+      var tagHTML = '';
+      if (hasSynced) tagHTML = '<span class="tag tag-sync">SYNC</span>';
+      else if (hasPlain) tagHTML = '<span class="tag tag-plain">TEXTO</span>';
+      else tagHTML = '<span class="tag tag-none">SIN LETRA</span>';
+
+      listHTML += '<div class="song-item" onclick="openLyrics(\'' + containerId + '\',' + i + ')">' +
+        '<span class="song-num">' + (i + 1) + '</span>' +
+        '<div class="song-info">' +
+          '<div class="song-title">' + esc(item.trackName || '—') + '</div>' +
+          '<div class="song-artist">' + esc(item.artistName || '') + '</div>' +
+          (item.albumName ? '<div class="song-album">' + esc(item.albumName) + '</div>' : '') +
+        '</div>' +
+        '<div class="song-right">' +
+          '<span class="dur">' + fmtDur(item.duration) + '</span>' +
+          tagHTML +
+        '</div>' +
+      '</div>';
+    }
+    container.innerHTML =
+      '<div class="result-head"><span class="result-head-title">Resultados</span><span class="pill pill-ok">' + items.length + ' encontrados</span></div>' +
+      '<div class="result-body">' + listHTML + '</div>';
+
+    window['_items_' + containerId] = items;
+  }
+
+  function openLyrics(containerId, idx) {
+    var items = window['_items_' + containerId];
+    if (!items) return;
+    var item = items[idx];
+    var hasSynced = !!item.syncedLyrics;
+    var hasPlain = !!item.plainLyrics;
+
+    var tabsHTML = '';
+    if (hasSynced) tabsHTML += '<button class="ly-tab active" id="tab-sync" onclick="switchLyTab(\'sync\')">Sincronizadas</button>';
+    if (hasPlain)  tabsHTML += '<button class="ly-tab' + (!hasSynced ? ' active' : '') + '" id="tab-plain" onclick="switchLyTab(\'plain\')">Texto plano</button>';
+
+    var syncHTML = '';
+    if (hasSynced) {
+      var parsed = parseLRC(item.syncedLyrics);
+      for (var j = 0; j < parsed.length; j++) {
+        var t = parsed[j].time;
+        var mins = Math.floor(t / 60);
+        var secs = Math.floor(t % 60);
+        var ts = mins + ':' + (secs < 10 ? '0' : '') + secs;
+        syncHTML += '<div class="sync-row"><span class="sync-ts">' + ts + '</span><span class="sync-line-text">' + esc(parsed[j].text || '♪') + '</span></div>';
+      }
+    }
+
+    var plainHTML = hasPlain ? esc(item.plainLyrics) : '';
+
+    var noLyricsHTML = (!hasSynced && !hasPlain)
+      ? '<div class="state-box"><div class="state-icon">♪</div><div class="state-msg">No hay letra disponible para esta canción.</div></div>'
+      : '';
+
+    var metaHTML =
+      '<div class="meta-strip">' +
+        '<span class="meta-chip">ID: <strong>' + esc(String(item.id || '—')) + '</strong></span>' +
+        '<span class="meta-chip">Duración: <strong>' + fmtDur(item.duration) + '</strong></span>' +
+        (item.instrumental ? '<span class="meta-chip" style="color:var(--accent)">Instrumental</span>' : '') +
+      '</div>';
+
+    var container = document.getElementById(containerId);
+    container.innerHTML =
+      '<div class="result-head"><span class="result-head-title">Letra</span><span class="pill pill-ok">Encontrada</span></div>' +
+      '<div class="result-body">' +
+        '<div class="lyrics-wrap">' +
+          '<div class="lyrics-top">' +
+            '<button class="back" onclick="goBack(\'' + containerId + '\')">← Volver</button>' +
+            '<div class="ly-title">' + esc(item.trackName || '—') + '</div>' +
+            '<div class="ly-meta">' + esc(item.artistName || '') + (item.albumName ? ' · ' + esc(item.albumName) : '') + '</div>' +
+            (tabsHTML ? '<div class="ly-tabs">' + tabsHTML + '</div>' : '') +
+          '</div>' +
+          '<div class="ly-content">' +
+            (hasSynced ? '<div id="lc-sync">' + syncHTML + '</div>' : '') +
+            (hasPlain  ? '<div id="lc-plain" style="' + (hasSynced ? 'display:none' : '') + '"><div class="plain-text">' + plainHTML + '</div></div>' : '') +
+            noLyricsHTML +
+          '</div>' +
+          metaHTML +
+        '</div>' +
+      '</div>';
+
+    window['_back_' + containerId] = function() {
+      renderList(containerId, items);
+    };
+  }
+
+  function goBack(containerId) {
+    if (window['_back_' + containerId]) window['_back_' + containerId]();
+  }
+
+  function switchLyTab(mode) {
+    var tabSync  = document.getElementById('tab-sync');
+    var tabPlain = document.getElementById('tab-plain');
+    var lcSync   = document.getElementById('lc-sync');
+    var lcPlain  = document.getElementById('lc-plain');
+    if (mode === 'sync') {
+      if (tabSync)  tabSync.classList.add('active');
+      if (tabPlain) tabPlain.classList.remove('active');
+      if (lcSync)   lcSync.style.display = '';
+      if (lcPlain)  lcPlain.style.display = 'none';
+    } else {
+      if (tabSync)  tabSync.classList.remove('active');
+      if (tabPlain) tabPlain.classList.add('active');
+      if (lcSync)   lcSync.style.display = 'none';
+      if (lcPlain)  lcPlain.style.display = '';
+    }
+  }
+
+  /* ─── API calls ─── */
+  function doSearch() {
+    var q      = document.getElementById('s-q').value.trim();
+    var artist = document.getElementById('s-artist').value.trim();
+    var album  = document.getElementById('s-album').value.trim();
+    if (!q && !artist && !album) return;
+
+    setLoading('btn-s', true);
+    var params = new URLSearchParams();
+    if (q)      params.set('q', q);
+    if (artist) params.set('artist_name', artist);
+    if (album)  params.set('album_name', album);
+
+    fetch('https://lrclib.net/api/search?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        renderList('res-search', Array.isArray(data) ? data : [data]);
+      })
+      .catch(function(e) {
+        renderError('res-search', 'Error de conexión: ' + e.message);
+      })
+      .finally(function() { setLoading('btn-s', false); });
+  }
+
+  function doGet() {
+    var title  = document.getElementById('g-title').value.trim();
+    var artist = document.getElementById('g-artist').value.trim();
+    var album  = document.getElementById('g-album').value.trim();
+    var dur    = document.getElementById('g-dur').value.trim();
+    if (!title || !artist || !album || !dur) {
+      renderError('res-get', 'Por favor completa todos los campos obligatorios.');
+      return;
+    }
+    setLoading('btn-g', true);
+    var params = new URLSearchParams({ track_name: title, artist_name: artist, album_name: album, duration: dur });
+
+    fetch('https://lrclib.net/api/get?' + params.toString())
+      .then(function(r) {
+        if (r.status === 404) throw new Error('Canción no encontrada (404).');
+        return r.json();
+      })
+      .then(function(item) { renderList('res-get', [item]); })
+      .catch(function(e) { renderError('res-get', e.message); })
+      .finally(function() { setLoading('btn-g', false); });
+  }
+
+  function doCached() {
+    var title  = document.getElementById('c-title').value.trim();
+    var artist = document.getElementById('c-artist').value.trim();
+    var album  = document.getElementById('c-album').value.trim();
+    var dur    = document.getElementById('c-dur').value.trim();
+    if (!title || !artist || !album || !dur) {
+      renderError('res-cached', 'Por favor completa todos los campos obligatorios.');
+      return;
+    }
+    setLoading('btn-c', true);
+    var params = new URLSearchParams({ track_name: title, artist_name: artist, album_name: album, duration: dur });
+
+    fetch('https://lrclib.net/api/get-cached?' + params.toString())
+      .then(function(r) {
+        if (r.status === 404) throw new Error('No encontrado en caché (404). Prueba el modo "Obtener exacto".');
+        return r.json();
+      })
+      .then(function(item) { renderList('res-cached', [item]); })
+      .catch(function(e) { renderError('res-cached', e.message); })
+      .finally(function() { setLoading('btn-c', false); });
+  }
+
+  /* ─── Enter key ─── */
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (tag === 'BUTTON') return;
+    var active = document.querySelector('.panel.active');
+    if (!active) return;
+    var id = active.id;
+    if (id === 'panel-search') doSearch();
+    else if (id === 'panel-get') doGet();
+    else if (id === 'panel-cached') doCached();
+  });
+</script>
+
+</body>
+</html>
