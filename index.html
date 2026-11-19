@@ -535,18 +535,27 @@
     if (!q && !artist && !album) return;
 
     setLoading('btn-s', true);
+    // LRCLIB ignora artist_name/album_name si va con "q", y exige q o track_name.
     var params = new URLSearchParams();
-    if (q)      params.set('q', q);
-    if (artist) params.set('artist_name', artist);
-    if (album)  params.set('album_name', album);
+    if (q && (artist || album)) {
+      params.set('track_name', q);
+      if (artist) params.set('artist_name', artist);
+      if (album)  params.set('album_name', album);
+    } else {
+      params.set('q', q || [artist, album].filter(Boolean).join(' '));
+    }
 
     fetch('https://lrclib.net/api/search?' + params.toString())
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error('La API respondió ' + r.status + '.');
+        return r.json();
+      })
       .then(function(data) {
-        renderList('res-search', Array.isArray(data) ? data : [data]);
+        if (!Array.isArray(data) || !data.length) throw new Error('Sin resultados.');
+        renderList('res-search', data);
       })
       .catch(function(e) {
-        renderError('res-search', 'Error de conexión: ' + e.message);
+        renderError('res-search', e.message);
       })
       .finally(function() { setLoading('btn-s', false); });
   }
